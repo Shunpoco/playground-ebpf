@@ -107,6 +107,8 @@ func main() {
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, os.Interrupt, os.Kill)
 
+	fmt.Println("start.")
+
 	go func() {
 		var event chownEvent
 		for {
@@ -119,7 +121,6 @@ func main() {
 			filename := (*C.char)(unsafe.Pointer(&event.Filename))
 			fmt.Printf("uid %d gid %d pid %d called fchownat(2) on %s (return value: %d)\n", event.Uid, event.Gid, event.Pid, C.GoString(filename), event.ReturnValue)
 		}
-
 	}()
 
 	perfMap.Start()

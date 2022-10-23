@@ -66,35 +66,37 @@ type chownEvent struct {
 }
 
 func main() {
-	module := bpf.NewModule(source, []string{})
-	defer module.Close()
+	m := bpf.NewModule(source, []string{})
+	defer m.Close()
 
+	// Specify a kernel function
 	fnName := bpf.GetSyscallFnName("fchownat")
 
-	kprobe, err := module.LoadKprobe("kprobe__sys_fchownat")
+	// Load user-defined C function to Kprobe
+	kprobe, err := m.LoadKprobe("kprobe__sys_fchownat")
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Failed to laod syscall__execve: %s\n", err)
+		fmt.Fprintf(os.Stderr, "Failed to load syscall__execve: %s\n", err)
 		os.Exit(1)
 	}
 
-	if err := module.AttachKprobe(fnName, kprobe, -1); err != nil {
-		fmt.Fprintf(os.Stderr, "Failed to attach syscall__execve: %s\n", err)
+	// Attach Kprobe to the specific kernel function
+	if err := m.AttachKprobe(fnName, kprobe, -1); err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to attach syscall_execve: %s\n", err)
 		os.Exit(1)
 	}
 
-	retKprobe, err := module.LoadKprobe("kretprobe__sys_fchownat")
+	retKprobe, err := m.LoadKprobe("kretprobe__sys_fchownat")
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Failed to load kretprobe__sys_fchownat: %s\n", err)
+		fmt.Fprintf(os.Stderr, "Failed to load kretprobe__sys_chownat: %s\n", err)
 		os.Exit(1)
 	}
 
-	err = module.AttachKretprobe(fnName, retKprobe, -1)
-	if err != nil {
+	if err := m.AttachKretprobe(fnName, retKprobe, -1); err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to attach kretprobe__sys_fchownat: %s\n", err)
 		os.Exit(1)
 	}
 
-	table := bpf.NewTable(module.TableId("chown_events"), module)
+	table := bpf.NewTable(m.TableId("chown_events"), m)
 
 	channel := make(chan []byte)
 
